@@ -1,0 +1,148 @@
+body {
+	padding: 0.5em;
+	overflow: hidden;
+	margin: 0;
+	padding: 0;
+	background: #333;
+}
+.plugin-entry {
+	font-size: 0.8em;
+}
+fieldset legend {
+	background: none;
+	font-size:  0.9em;
+}
+.tabs-content > .content {
+	margin-top: -6px;
+}
+.tabs dd.active a {
+	color: white;
+	background-color: #262626;
+}
+.tabs dd.active a:hover,.tabs dd > a:hover {
+	color: white;
+	background-color: #2d2d2d;
+}
+.tabs dd > a {
+	padding-top: 5px;
+	padding-bottom: 5px;
+	padding-right: 7px;
+	padding-left: 7px;
+	font-weight: bolder;
+	background-color: #333;
+	color: white;
+}
+:focus {
+	outline: none;
+}
+ul.input-list {
+	list-style-type: none;
+}
+.small-text {
+	font-size: 70%;
+	margin: 2px;
+}
+.tiny-text {
+	font-size: 50%;
+}
+.panel {
+	padding: 0.65rem;
+}
+.button.small {
+	padding-top: 0.45rem;
+	padding-right: 0.75rem;
+	padding-bottom: 0.45rem;
+	padding-left: 0.75rem;
+	font-size: 0.89rem;
+	margin-right: 5px;
+}
+.switch-button-label {
+	float: left;
+	font-size: 10pt;
+	cursor: pointer;
+	margin-top: 10px;
+}
+.switch-button-background {
+	margin-top: 10px;
+}
+.miniwindow {
+	position: absolute;
+	left: 50%;
+	top:20%;
+	width: 400px;
+	height: 500px;
+	z-index: 1001;
+}
+.miniwindow-header {
+  background: #8dcb2b;
+  color:#080808 ;
+  font-size: 0.75em;
+  padding: 5px;
+  padding-right: 20px;
+  padding-left: 20px; 
+  cursor: pointer;
+}
+button,.button {
+	background: #8dcb2b;
+  	color:#080808 ;
+}
+button:hover,.button:hover {
+	background-color: #c2f179;
+	color:#080808 ;
+}
+.miniwindow-content {
+	background-color: #262626;
+	color: white;
+	border: 1px solid #292929;
+	margin-bottom: 1.25rem;
+	padding: 1.25rem;
+	font-size: 0.70em;
+}
+input[type="text"],
+input[type="password"],
+input[type="date"],
+input[type="datetime"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="week"],
+input[type="email"],
+input[type="number"],
+input[type="search"],
+input[type="tel"],
+input[type="time"],
+input[type="url"],
+textarea {
+	background-color: #262626;
+	color: white;
+	border: 1px solid #292929;
+}
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="date"]:focus,
+input[type="datetime"]:focus,
+input[type="datetime-local"]:focus,
+input[type="month"]:focus,
+input[type="week"]:focus,
+input[type="email"]:focus,
+input[type="number"]:focus,
+input[type="search"]:focus,
+input[type="tel"]:focus,
+input[type="time"]:focus,
+input[type="url"]:focus,
+textarea:focus {
+	background-color: #262626;
+	color: white;
+	border: 1px solid #191919;
+}
+input[type="text"][disabled], input[type="password"][disabled], input[type="date"][disabled], input[type="datetime"][disabled], input[type="datetime-local"][disabled], input[type="month"][disabled], input[type="week"][disabled], input[type="email"][disabled], input[type="number"][disabled], input[type="search"][disabled], input[type="tel"][disabled], input[type="time"][disabled], input[type="url"][disabled], textarea[disabled] {
+	background-color: #262626;
+	color: #c3c9ba;
+	border: 1px solid #191919;
+}
+.panel {
+	background: #333;
+	border: none;
+}
+.switch-button-label.on {
+	color: #8dcb2b;
+}
