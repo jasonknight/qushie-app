@@ -102,7 +102,7 @@ Aliases.new = function (alias) {
 			Qushie.column({
 				small_columns: 24,
 				large_columns: 24,
-				content: "<textarea id='NewAliasOutput' placeholder='Command' rows='10'></textarea>"
+				content: "<div id='NewAliasOutputScript' style='margin-bottom: 20px;font-size: 14px;font-family: monospace; display:none;width: 100%;min-height: 300px'></div><textarea id='NewAliasOutput' placeholder='Command' rows='10'></textarea>"
 			})
 		})
 	);
@@ -160,7 +160,29 @@ Aliases.new = function (alias) {
 	);
 	// console.log(alias);
 	Qushie.toggle('NewAliasEnable',alias,'enabled');
-	Qushie.toggle('NewAliasScript',alias,'script',{on_label: 'Script', off_label: 'Plain'});
+	Qushie.toggle('NewAliasScript',alias,'script',{on_label: 'Script', off_label: 'Plain'}, function () {
+		if ( $('#NewAliasScript').is(':checked') ) {
+			$('#NewAliasOutputScript').show();
+			$('#NewAliasOutput').hide();
+			var editor = ace.edit("NewAliasOutputScript");
+		    editor.getSession().setMode("ace/mode/javascript");
+		    setTimeout(function ( ) {
+		    	editor.resize();
+		    	editor.setHighlightActiveLine(false);
+		    	editor.getSession().setTabSize(4);
+		    	editor.setTheme("ace/theme/twilight");
+		    	editor.setShowPrintMargin(false);
+		    	editor.setValue($('#NewAliasOutput').val(),0);
+		    	editor.on('change',function (o) {
+		    		$('#NewAliasOutput').val(editor.getValue());
+		    	});
+		    },100);
+		} else {
+			$('#NewAliasOutputScript').hide();
+			$('#NewAliasOutput').show();
+		}
+		
+	});
 	Qushie.toggle('NewAliasStop',alias,'cont',{on_label: 'Cont',off_label: 'Stop'});
 	$('#NewAliasSave').on('click',function () {
 		var alias = frame.data('alias');
