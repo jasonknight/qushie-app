@@ -3,6 +3,7 @@ var GMCP = {
 	sent_do: false,
 	sent_hello: false,
 	version: "0.0.1",
+	debug: 'no',
 	
 };
 var pkt_template = {
@@ -23,30 +24,32 @@ GMCP.send = function (what) {
 	var pkt = String.fromCharCode(IAC) + String.fromCharCode(SB) + String.fromCharCode(TOPT_GMCP) +
 			  what.replace("\x255","\x255\x255") +
 			  String.fromCharCode(IAC) + String.fromCharCode(SE);
-	console.log("GMCP: ", "Sending [[["+pkt+"]]]")
+	if ( GMCP.debug == 'yes' ) {
+		console.log("GMCP: ", "Sending [[["+pkt+"]]]")
+	}
     AardwolfTelnet.sendRaw(pkt);
 }
-Qushie.addFilter('aardwolf_telnet_tabs','aardwolf_telnet_GMCP_MiniWindow',0,function (tabs) {
+Qushie.addFilter('AardwolfTelnet.tabs','aardwolf_telnet_GMCP_MiniWindow',0,function (tabs) {
 	// We don't really want to have a tab, but a mini window :)
-	console.log("GMCP", "Adding Miniwindow!");
-	Qushie.miniWindow("GMCP","AardWolf GMCP Controller",function () {
-		return "Hello World";
-	});
+	// console.log("GMCP", "Adding Miniwindow!");
+	// Qushie.miniWindow("GMCP","AardWolf GMCP Controller",function () {
+	// 	return "Hello World";
+	// });
 	return tabs;
 });
-Qushie.addFilter('aardwolf_text_received_raw','aardwolf_telnet_GMCP_negotiator',0,function (txt) {
+Qushie.addFilter('AardwolfTelnet.text_received.raw','aardwolf_telnet_GMCP_negotiator',0,function (txt) {
 	// We don't really want to have a tab, but a mini window :)
 	if ( ! GMCP.sent_do ) {
-		console.log("GMCP: ", "Haven't Sent DO");
+		if ( GMCP.debug == 'yes') { console.log("GMCP: ", "Haven't Sent DO"); }
 		for ( var i = 0; i < txt.length; i++ ) {
 			var c = txt.charCodeAt(i);
 			if ( c == IAC ) {
-				console.log("GMCP: ", "IAC Found");
+				if ( GMCP.debug == 'yes') { console.log("GMCP: ", "IAC Found"); }
 				var operation = txt.charCodeAt(++i);
 				var option = txt.charCodeAt(++i);
 				console.log("GMCP: ", operation,option);
 				if ( operation == WILL && option == TOPT_GMCP ) {
-					console.log("GMCP: ", "The server is offering GMCP ");
+					if ( GMCP.debug == 'yes' ) { console.log("GMCP: ", "The server is offering GMCP "); }
 					var resp = String.fromCharCode(IAC) + String.fromCharCode(DO) + String.fromCharCode(TOPT_GMCP);
 					AardwolfTelnet.send(resp);
 					GMCP.sent_do = true
@@ -58,7 +61,7 @@ Qushie.addFilter('aardwolf_text_received_raw','aardwolf_telnet_GMCP_negotiator',
       	GMCP.send('Core.Supports.Set [ "Char 1", "Comm 1", "Room 1" ]');
       	GMCP.sent_hello = true;
 	} else {
-		console.log("GMCP: ", "All negotiation Done");
+		if ( GMCP.debug == 'yes' ) { console.log("GMCP: ", "All negotiation Done"); }
 		txt = GMCP.parseMessage(txt);
 	}
 	return txt;
@@ -81,19 +84,25 @@ GMCP.parseMessage = function (txt) {
 				state.gmcp = true;
 				break;
 			case SE:
-				if (state.iac && state.sb ) {
+				if (state.sb ) {
 					state = { iac: false, sb: false, se: false, gmcp: false };
 					try {
-						eval(pkt.replace(/^([\w\.]+)\s/,'Qushie.emit("gmcp.$1",') + ");");	
+						var code = pkt.replace(/^([\w\.]+)\s/,'Qushie.emit("gmcp.$1",') + ");";
+						console.log("Evaluating :", code);
+						eval(code);	
 					} catch (err) {
 						console.log("GMCP: ", err);
 					}
 					
 					pkt = "";
+				} else {
+					if ( GMCP.debug == 'yes' ) {
+						console.log("Found SE, but never found SB?");
+					}
 				}
 				break;
 			default:
-				if ( state.iac && state.sb && state.gmcp ) {
+				if ( state.sb && state.gmcp ) {
 					pkt += txt[i];
 				} else {
 					data += txt[i];

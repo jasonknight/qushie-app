@@ -2,7 +2,7 @@ var Aliases = {
 	id: "Aardwolf_Aliases",
 	search_keyword: '',
 	page: 1,
-	per_page: 7,
+	per_page: 9,
 };
 Aliases.defined_aliases = [];
 Aliases.matches = function (alias,str) {
@@ -17,7 +17,7 @@ Aliases.matches = function (alias,str) {
 		}
 	} catch (err) {
 		// console.log("Error: ", err);
-		Qushie.emit("alias_regex_error",err);
+		Qushie.emit("Aliases.regex.error",err);
 		return false;
 	}
 }
@@ -31,7 +31,6 @@ Aliases.new = function (alias) {
 			id: null,
 			match: '',
 			enabled: false,
-			script: false,
 			cont: true,
 			send: '',
 			group: '',
@@ -61,28 +60,19 @@ Aliases.new = function (alias) {
 	frame.append(
 		Qushie.row({ content:
 			Qushie.column({
-				small_columns: 4,
-				large_columns: 4,
+				small_columns: 7,
+				large_columns: 7,
 				content: "<input id='NewAliasEnable' type='checkbox'  />"
 			}) +
+
 			Qushie.column({
 				small_columns: 5,
 				large_columns: 5,
-				content: "<input id='NewAliasScript' type='checkbox'  />"
-			}) + 
-			Qushie.column({
-				small_columns: 5,
-				large_columns: 5,
-				content: "<input id='NewAliasStop' type='checkbox'  />"
-			}) +   
-			Qushie.column({
-				small_columns: 4,
-				large_columns: 4,
 				content: "<input id='NewAliasSequence' type='text' placeholder='Sequence' />"
 			}) +
 			Qushie.column({
-				small_columns: 5,
-				large_columns: 5,
+				small_columns: 10,
+				large_columns: 10,
 				content: "<input id='NewAliasGroup' type='text' placeholder='Groupname' />"
 			})
 		})
@@ -102,7 +92,7 @@ Aliases.new = function (alias) {
 			Qushie.column({
 				small_columns: 24,
 				large_columns: 24,
-				content: "<div id='NewAliasOutputScript' style='margin-bottom: 20px;font-size: 14px;font-family: monospace; display:none;width: 100%;min-height: 300px'></div><textarea id='NewAliasOutput' placeholder='Command' rows='10'></textarea>"
+				content: "<div id='NewAliasOutputScript' style='margin-bottom: 20px;font-size: 18px;font-family: monospace;width: 100%;min-height: 150px'></div><textarea id='NewAliasOutput' placeholder='Command' rows='10' style='display:none;'></textarea>"
 			})
 		})
 	);
@@ -139,7 +129,7 @@ Aliases.new = function (alias) {
 			$('#NewAliasTestMatching').html("Failed");
 		}
 	});
-	Qushie.connect('alias_regex_error','Aliases_NewRegexError',0,function () {
+	Qushie.connect('Aliases.regex.error','Aliases_NewRegexError',0,function () {
 		setTimeout(function () {
 			$('#NewAliasTestMatching').html("Bad Regex");
 		},150);
@@ -160,30 +150,27 @@ Aliases.new = function (alias) {
 	);
 	// console.log(alias);
 	Qushie.toggle('NewAliasEnable',alias,'enabled');
-	Qushie.toggle('NewAliasScript',alias,'script',{on_label: 'Script', off_label: 'Plain'}, function () {
-		if ( $('#NewAliasScript').is(':checked') ) {
-			$('#NewAliasOutputScript').show();
-			$('#NewAliasOutput').hide();
-			var editor = ace.edit("NewAliasOutputScript");
-		    editor.getSession().setMode("ace/mode/javascript");
-		    setTimeout(function ( ) {
-		    	editor.resize();
-		    	editor.setHighlightActiveLine(false);
-		    	editor.getSession().setTabSize(4);
-		    	editor.setTheme("ace/theme/twilight");
-		    	editor.setShowPrintMargin(false);
-		    	editor.setValue($('#NewAliasOutput').val(),0);
-		    	editor.on('change',function (o) {
-		    		$('#NewAliasOutput').val(editor.getValue());
-		    	});
-		    },100);
-		} else {
-			$('#NewAliasOutputScript').hide();
-			$('#NewAliasOutput').show();
-		}
-		
+	var editor = ace.edit("NewAliasOutputScript");
+    editor.getSession().setMode("ace/mode/javascript");
+
+	var h = $('#AardwolfTelnet_RightWidgets_Tabs_Contents').height();
+	h = h * 0.40;
+	$('#NewAliasOutputScript').height(h);
+	editor.resize();
+	editor.setHighlightActiveLine(false);
+	editor.getSession().setTabSize(4);
+	editor.setTheme("ace/theme/twilight");
+	editor.setShowPrintMargin(false);
+	editor.setValue($('#NewAliasOutput').val(),0);
+	editor.setOptions({
+        enableBasicAutocompletion: true,
+        enableSnippets: true
+    });
+	editor.on('change',function (o) {
+		$('#NewAliasOutput').val(editor.getValue());
+		$('#NewAliasOutput').trigger("keyup");
 	});
-	Qushie.toggle('NewAliasStop',alias,'cont',{on_label: 'Cont',off_label: 'Stop'});
+   
 	$('#NewAliasSave').on('click',function () {
 		var alias = frame.data('alias');
 		for ( var i in Aliases.defined_aliases ) {
@@ -245,37 +232,22 @@ Aliases.list = function () {
 					Qushie.column({
 						small_columns: 6,
 						large_columns: 6,
-						content: "<input id='ListAliasMatch_"+alias.id+"' type='text' placeholder='Match' value='"+alias.match+"' />"
+						content: "<label>" +alias.match+ "</label>"
+					})  +
+					Qushie.column({
+						small_columns: 11,
+						large_columns: 11,
+						content: "<label>" + alias.group + "</label>"
+					}) +
+					Qushie.column({
+						small_columns: 3,
+						large_columns: 3,
+						content: "<div id='ListAliasEditButton_"+alias.id+"' class='button tiny radius'>Edit</div>"
 					}) +
 					Qushie.column({
 						small_columns: 4,
 						large_columns: 4,
-						content: "<input id='ListAliasEnable_"+alias.id+"' type='checkbox'  />"
-					})  +
-					Qushie.column({
-						small_columns: 6,
-						large_columns: 6,
-						content: "<input id='ListAliasGroup_"+alias.id+"' type='text' placeholder='NoGroup' value='"+alias.group+"' />"
-					}) +
-					Qushie.column({
-						small_columns: 2,
-						large_columns: 2,
-						content: "<input type='text' disabled value='" + alias.times_called + "' />"
-					})  +
-					Qushie.column({
-						small_columns: 2,
-						large_columns: 2,
-						content: "<div id='ListAliasEditButton_"+alias.id+"' class='button small'>Edit</div>"
-					}) +
-					Qushie.column({
-						small_columns: 2,
-						large_columns: 2,
-						content: "<div id='ListAliasDeleteButton_"+alias.id+"' class='button small alert'>Delete</div>"
-					}) +
-					Qushie.column({
-						small_columns: 1,
-						large_columns: 1,
-						content: ""
+						content: "<div id='ListAliasDeleteButton_"+alias.id+"' class='button tiny radius alert'>Delete</div>"
 					})
 				})
 			);
@@ -319,11 +291,11 @@ Aliases.list = function () {
 			}) +
 			Qushie.column({
 				large_columns: 4, small_columns: 4,
-				content: '<div id="ListAliasPrevPageButton" class="button small">Previous</div>' 
+				content: '<div id="ListAliasPrevPageButton" class="button tiny radius">Previous</div>' 
 			}) +
 			Qushie.column({
 				large_columns: 4, small_columns: 4,
-				content: '<div id="ListAliasNextPageButton" class="button small">Next</div>' 
+				content: '<div id="ListAliasNextPageButton" class="button tiny radius">Next</div>' 
 			}) +
 			Qushie.column({
 				large_columns: 8, small_columns: 8,
@@ -354,7 +326,7 @@ Aliases.remove = function (the_alias) {
 	Aliases.defined_aliases = new_aliases;
 	Aliases.save();
 }
-Qushie.connect('after_render_tabs','aardwolf_telnet_aliases_show_frames', 0, function () {
+Qushie.connect('Qushie.render_tabs.after','aardwolf_telnet_aliases_show_frames', 0, function () {
 	var mytab = $('#Aardwolf_Alias_Tab_Content');
 	if ( ! mytab.length == 0 ) {
 		if ( Aliases.defined_aliases.length == 0) {
@@ -364,7 +336,7 @@ Qushie.connect('after_render_tabs','aardwolf_telnet_aliases_show_frames', 0, fun
 		}
 	}
 });
-Qushie.connect('set_active_tab','aardwolf_telnet_aliases_show_frames', 0, function () {
+Qushie.connect('Qushie.set_active_tab','aardwolf_telnet_aliases_show_frames', 0, function () {
 	setTimeout(function () {
 		var mytab = $('#Aardwolf_Alias_Tab_Content');
 		if ( ! mytab.length == 0 ) {
@@ -386,7 +358,7 @@ Qushie.connect('set_active_tab','aardwolf_telnet_aliases_show_frames', 0, functi
 		}
 	},150);
 });
-Qushie.addFilter('aardwolf_telnet_tabs','aardwolf_telnet_alias_tab',0,function (tabs) {
+Qushie.addFilter('AardwolfTelnet.tabs','aardwolf_telnet_alias_tab',0,function (tabs) {
 	for ( i in tabs ) {
 		var tab = tabs[i]
 		if ( tab.id == "Aardwolf_Alias_Tab") {
@@ -442,31 +414,22 @@ Qushie.addFilter('aardwolf_telnet_tabs','aardwolf_telnet_alias_tab',0,function (
 	return tabs;
 });
 
-Qushie.addFilter('aardwolf_cmd_entered','alias_aardwolf_cmd_entered',0,function (the_cmd) {
+Qushie.addFilter('AardwolfTelnet.cmd_entered','alias_AardwolfTelnet.cmd_entered',0,function (the_cmd) {
 	for ( var i = 0; i < Aliases.defined_aliases.length; i++ ) {
 		var the_alias = Aliases.defined_aliases[i];
 		var m = false;
 		m = Aliases.matches(the_alias,the_cmd)
 		if ( the_alias.enabled == true &&  m ) {
-			if ( the_alias.script ) {
-				try {
-					console.log("Evaling: ", the_alias.send);
-					eval(the_alias.send);
-					return ''; // we don't send the origina command.
-				} catch (err) {
-					 console.log(err);
-				}
-			} else {
-				// we replace the command.
-				the_cmd = the_alias.send;
+			try {
+				//console.log("Evaling: ", the_alias.send);
+				eval(the_alias.send);
+				return ''; // we don't send the origina command.
+			} catch (err) {
+				 console.log(err);
 			}
-			if ( the_alias.cont ) {
-				continue;
-			} else {
-				break;
-			}
+			break;
 		} else {
-			console.log("Aliases: ", the_cmd, " does not match ", the_alias.match );
+			//console.log("Aliases: ", the_cmd, " does not match ", the_alias.match );
 		}
 	}
 	// console.log("the_cmd is ",the_cmd);

@@ -2,7 +2,7 @@ var Triggers = {
 	id: "Aardwolf_Triggers",
 	search_keyword: '',
 	page: 1,
-	per_page: 7,
+	per_page: 4,
 };
 Triggers.defined_triggers = [];
 Triggers.matches = function (trigger,str) {
@@ -17,7 +17,7 @@ Triggers.matches = function (trigger,str) {
 		}
 	} catch (err) {
 		// console.log("Error: ", err);
-		Qushie.emit("trigger_regex_error",err);
+		Qushie.emit("Triggers.regex.error",err);
 		return false;
 	}
 }
@@ -59,32 +59,40 @@ Triggers.new = function (trigger) {
 	});
 	$('#NewTriggerMatch').val(trigger.match);
 	frame.append(
+
 		Qushie.row({ content:
 			Qushie.column({
-				small_columns: 4,
-				large_columns: 4,
+				small_columns: 6,
+				large_columns: 6,
 				content: "<input id='NewTriggerEnable' type='checkbox'  />"
 			}) +
 			Qushie.column({
-				small_columns: 5,
-				large_columns: 5,
+				small_columns: 6,
+				large_columns: 6,
 				content: "<input id='NewTriggerHTML' type='checkbox'  />"
 			}) + 
 			Qushie.column({
-				small_columns: 5,
-				large_columns: 5,
+				small_columns: 6,
+				large_columns: 6,
 				content: "<input id='NewTriggerStop' type='checkbox'  />"
-			}) +   
-			Qushie.column({
-				small_columns: 4,
-				large_columns: 4,
-				content: "<input id='NewTriggerSequence' type='text' placeholder='Sequence' />"
-			}) +
-			Qushie.column({
-				small_columns: 5,
-				large_columns: 5,
-				content: "<input id='NewTriggerGroup' type='text' placeholder='Groupname' />"
-			})
+			})   
+			
+		})
+	);
+	frame.append(
+		Qushie.row({
+			content: 
+				Qushie.row({content: '<div class="vertical-spacer">&nbsp;</div>'}) +
+				Qushie.column({
+					small_columns: 8,
+					large_columns: 8,
+					content: "<input id='NewTriggerSequence' type='text' placeholder='Sequence' />"
+				}) +
+				Qushie.column({
+					small_columns: 12,
+					large_columns: 12,
+					content: "<input id='NewTriggerGroup' type='text' placeholder='Groupname' />"
+				})
 		})
 	);
 	$('#NewTriggerGroup').on('keyup',function () {
@@ -102,7 +110,7 @@ Triggers.new = function (trigger) {
 			Qushie.column({
 				small_columns: 24,
 				large_columns: 24,
-				content: "<textarea id='NewTriggerOutput' placeholder='Command' rows='10'></textarea>"
+				content: "<div id='NewTriggerOutputScript' style='margin-bottom: 20px;font-size: 18px;font-family: monospace;width: 100%;min-height: 150px'></div><textarea id='NewTriggerOutput' placeholder='Command' rows='10' style='display:none;'></textarea>"
 			})
 		})
 	);
@@ -139,11 +147,31 @@ Triggers.new = function (trigger) {
 			$('#NewTriggerTestMatching').html("Failed");
 		}
 	});
-	Qushie.connect('trigger_regex_error','Triggers_NewRegexError',0,function () {
+	Qushie.connect('Triggers.regex.error','Triggers_NewRegexError',0,function () {
 		setTimeout(function () {
 			$('#NewTriggerTestMatching').html("Bad Regex");
 		},150);
 	});
+	var editor = ace.edit("NewTriggerOutputScript");
+    editor.getSession().setMode("ace/mode/javascript");
+
+	var h = $('#AardwolfTelnet_RightWidgets_Tabs_Contents').height();
+	h = h * 0.40;
+	$('#NewTriggerOutputScript').height(h);
+	editor.resize();
+	editor.setHighlightActiveLine(false);
+	editor.getSession().setTabSize(4);
+	editor.setTheme("ace/theme/twilight");
+	editor.setShowPrintMargin(false);
+	editor.setValue($('#NewTriggerOutput').val(),0);
+	editor.on('change',function (o) {
+		$('#NewTriggerOutput').val(editor.getValue());
+		$('#NewTriggerOutput').trigger("keyup");
+	});
+	editor.setOptions({
+        enableBasicAutocompletion: true,
+        enableSnippets: true
+    });
 	frame.append(
 		Qushie.row({ content: 
 			Qushie.column({
@@ -219,43 +247,44 @@ Triggers.list = function () {
 		(function (trigger) {
 			// console.log("Trigger: ",trigger);
 			frame.append(
+				Qushie.row({
+					content: 
+						Qushie.column({
+						small_columns: 24,
+						large_columns: 24,
+						content: "<input id='ListTriggerMatch_"+trigger.id+"' type='text' placeholder='Match' value='"+trigger.match+"' />"
+					})
+				}) +
 				Qushie.row({ content: 
 					Qushie.column({
-						small_columns: 6,
-						large_columns: 6,
-						content: "<input id='ListTriggerMatch_"+trigger.id+"' type='text' placeholder='Match' value='"+trigger.match+"' />"
+						small_columns: 5,
+						large_columns: 5,
+						content: "<input id='ListTriggerEnable_"+trigger.id+"' type='checkbox'  />"
+					})  +
+					Qushie.column({
+						small_columns: 12,
+						large_columns: 12,
+						content: "<input id='ListTriggerGroup_"+trigger.id+"' type='text' placeholder='NoGroup' value='"+trigger.group+"' />"
+					}) +
+					Qushie.column({
+						small_columns: 3,
+						large_columns: 3,
+						content: "<div id='ListTriggerEditButton_"+trigger.id+"' class='button small'>Edit</div>"
 					}) +
 					Qushie.column({
 						small_columns: 4,
 						large_columns: 4,
-						content: "<input id='ListTriggerEnable_"+trigger.id+"' type='checkbox'  />"
-					})  +
-					Qushie.column({
-						small_columns: 6,
-						large_columns: 6,
-						content: "<input id='ListTriggerGroup_"+trigger.id+"' type='text' placeholder='NoGroup' value='"+trigger.group+"' />"
-					}) +
-					Qushie.column({
-						small_columns: 2,
-						large_columns: 2,
-						content: "<input type='text' disabled value='" + trigger.times_called + "' />"
-					})  +
-					Qushie.column({
-						small_columns: 2,
-						large_columns: 2,
-						content: "<div id='ListTriggerEditButton_"+trigger.id+"' class='button small'>Edit</div>"
-					}) +
-					Qushie.column({
-						small_columns: 2,
-						large_columns: 2,
 						content: "<div id='ListTriggerDeleteButton_"+trigger.id+"' class='button small alert'>Delete</div>"
-					}) +
-					Qushie.column({
-						small_columns: 1,
-						large_columns: 1,
-						content: ""
+					}) 
+				}) +
+				Qushie.row({
+					content: 
+						Qushie.column({
+						small_columns: 24,
+						large_columns: 24,
+						content: "<hr />"
 					})
-				})
+				}) 
 			);
 			
 			try {
@@ -297,11 +326,11 @@ Triggers.list = function () {
 			}) +
 			Qushie.column({
 				large_columns: 4, small_columns: 4,
-				content: '<div id="ListTriggerPrevPageButton" class="button small">Previous</div>' 
+				content: '<div id="ListTriggerPrevPageButton" class="button tiny radius">Previous</div>' 
 			}) +
 			Qushie.column({
 				large_columns: 4, small_columns: 4,
-				content: '<div id="ListTriggerNextPageButton" class="button small">Next</div>' 
+				content: '<div id="ListTriggerNextPageButton" class="button tiny radius">Next</div>' 
 			}) +
 			Qushie.column({
 				large_columns: 8, small_columns: 8,
@@ -332,7 +361,7 @@ Triggers.remove = function (the_trigger) {
 	Triggers.defined_triggers = new_triggers;
 	Triggers.save();
 }
-Qushie.connect('after_render_tabs','aardwolf_telnet_triggers_show_frames', 0, function () {
+Qushie.connect('Qushie.render_tabs.after','aardwolf_telnet_triggers_show_frames', 0, function () {
 	var mytab = $('#Aardwolf_Trigger_Tab_Content');
 	if ( ! mytab.length == 0 ) {
 		if ( Triggers.defined_triggers.length == 0) {
@@ -342,7 +371,7 @@ Qushie.connect('after_render_tabs','aardwolf_telnet_triggers_show_frames', 0, fu
 		}
 	}
 });
-Qushie.connect('set_active_tab','aardwolf_telnet_triggers_show_frames', 0, function () {
+Qushie.connect('Qushie.set_active_tab','aardwolf_telnet_triggers_show_frames', 0, function () {
 	setTimeout(function () {
 		var mytab = $('#Aardwolf_Trigger_Tab_Content');
 		if ( ! mytab.length == 0 ) {
@@ -364,7 +393,7 @@ Qushie.connect('set_active_tab','aardwolf_telnet_triggers_show_frames', 0, funct
 		}
 	},150);
 });
-Qushie.addFilter('aardwolf_telnet_tabs','aardwolf_telnet_trigger_tab',0,function (tabs) {
+Qushie.addFilter('AardwolfTelnet.tabs','aardwolf_telnet_trigger_tab',0,function (tabs) {
 	for ( i in tabs ) {
 		var tab = tabs[i]
 		if ( tab.id == "Aardwolf_Trigger_Tab") {
@@ -420,7 +449,7 @@ Qushie.addFilter('aardwolf_telnet_tabs','aardwolf_telnet_trigger_tab',0,function
 	return tabs;
 });
 
-Qushie.addFilter('aardwolf_html_produced','trigger_aardwolf_cmd_entered',0,function (the_text) {
+Qushie.addFilter('AardwolfTelnet.html_produced','trigger_AardwolfTelnet.cmd_entered',0,function (the_text) {
 	// console.log("TRIGGERS: Executing");
 	for ( var i = 0; i < Triggers.defined_triggers.length; i++ ) {
 		var the_trigger = Triggers.defined_triggers[i];

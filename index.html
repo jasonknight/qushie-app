@@ -31,7 +31,6 @@
           <%
             var classes = '';
             if ( Qushie.isTabActive(tab.id,tab.active_tab_key) ) {
-              console.log(tab.id, "is active");
               classes = 'active'
             }
           %>
@@ -113,10 +112,13 @@
     <script src="js/plugins/aardwolf_telnet.js"></script>
     <script src="js/plugins/aliases.js"></script>
     <script src="js/plugins/triggers.js"></script>
+    <script src="js/plugins/scripts.js"></script>
     <script src="js/plugins/GMCP.js"></script>
     
     <script src="js/vendor/ace.js" data-ace-base="js/vendor/ace" type="text/javascript" charset="utf-8"></script>
+    <script src="js/vendor/ace/ext-language_tools.js"></script>
     <script>
+      ace.require("ace/ext/language_tools");
       function resize() {
         var h = $(window).height();
         $('#Main').css({ height: h - 30,  });
@@ -130,8 +132,7 @@
       $(window).on('resize',resize);
       setInterval(function () {
         Qushie.redraw();
-        $('body').scrollTop(0);
-      },220);
+      },550);
     </script>
 
   </body>

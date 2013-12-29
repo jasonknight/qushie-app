@@ -1,13 +1,11 @@
 Qushie.ui_needs_update = true;
 Qushie.settings = {
-	plugins: {}
+	plugins: {},
+	tabs_rendered: false,
+	throw_error: false,
 };
-Qushie.events = {
-	init: [],
-	loaded: [],
-	load_plugins: [],
-	settings_saved: [],
-};
+Qushie.debug = 'no';
+Qushie.events = {};
 Qushie.filters = {};
 Qushie.row = _.template( $('#template_row').html() );
 Qushie.column = _.template( $('#template_column').html() );
@@ -16,14 +14,15 @@ Qushie.tab_controls = _.template( $('#template_tab_controls').html() );
 Qushie.tab_contents = _.template( $('#template_tab_contents').html() );
 
 Qushie.connect = function (name, id, priority, cb) {
-	// // console.log("Connecting",name,id,priority,cb)
+	if ( Qushie.debug == 'yes' ) { console.log("Connecting",name,id,priority,cb) }
 	if ( ! Qushie.events[name] ) {
 		Qushie.events[name] = [];
 	}
 	for ( i in Qushie.events[name] ) {
 		var desc = Qushie.events[name][i];
 		if ( desc && desc.id == id ) {
-			// // console.log("Already registered")
+			desc.callback = cb;
+			desc.priority = priority;
 			return;
 		}
 	}
@@ -32,6 +31,9 @@ Qushie.connect = function (name, id, priority, cb) {
 Qushie.disconnect = function (name,id) {
 	if ( ! Qushie.events[name] ) {
 		Qushie.events[name] = [];
+	}
+	if ( Qushie.debug == 'yes' ) {
+		console.log("Disconnecting", name,id);
 	}
 	var new_events = [];
 	for ( i in Qushie.events[name] ) {
@@ -44,7 +46,7 @@ Qushie.disconnect = function (name,id) {
 	Qushie.events = new_events;
 }
 Qushie.emit = function (name, data) {
-	console.log("Qushie Emit: ", name, data, " to ", Qushie.events[name]);
+	if ( Qushie.debug == 'yes' ) { console.log("Qushie Emit: ", name, data, " to ", Qushie.events[name]); }
 	for ( i in Qushie.events[name] ) {
 		var desc = Qushie.events[name][i];
 		if ( desc ) {
@@ -53,21 +55,25 @@ Qushie.emit = function (name, data) {
 	}
 }
 Qushie.addFilter = function (name,id,priority,cb) {
-	// // console.log("Connecting",name,id,priority,cb)
+	if ( Qushie.debug == 'yes' ) { console.log("Adding Filter:",name,id,priority,cb); }
 	if ( ! Qushie.filters[name] ) {
 		Qushie.filters[name] = [];
 	}
 	for ( i in Qushie.filters[name] ) {
 		var desc = Qushie.filters[name][i];
 		if ( desc && desc.id == id ) {
-			// // console.log("Already registered")
+			 // console.log(name,id,"Already registered")
 			return;
 		}
 	}
 	Qushie.filters[name].push({id: id, callback: cb, priority: priority});
 }
 Qushie.applyFilter = function (name,th,data) {
-	// console.log("applying filter ",name)
+	if ( Qushie.debug == 'yes' ) { console.log("applying filter ",name, " TO ", Qushie.filters); }
+	if ( ! data ) {
+		data = th;
+		th = Qushie;
+	}
 	for ( i in Qushie.filters[name] ) {
 		var desc = Qushie.filters[name][i];
 		if ( desc ) {
@@ -76,84 +82,47 @@ Qushie.applyFilter = function (name,th,data) {
 	}
 	return data;
 }
-Qushie.registered_plugins = [
-	
-];
 Qushie.tabs = [
-	{
-		name: "Settings",
-		id: "Qushie_Settings",
-		active: true,
-		content: function () {
-			var tmp = _.template( $('#template_qushie_settings').html() );
-			return tmp({id: "Qushie_Settings_Form", settings: Qushie.settings, registered_plugins: Qushie.registered_plugins});
-		},
-		after_content: function () {
 
-		}
-	},
-	
 ];
 
 Qushie.onLoad = function () {
-	// console.log("onLoad")
+	if ( Qushie.debug == 'yes' ) { console.log("onLoad"); }
 	Qushie.loadSettings();
-	Qushie.emit('load_plugins',{});
-	for ( i in Qushie.tabs) {
-		if ( Qushie.tabs[i].id == Qushie.settings.active_tab ) {
-			// console.log("Restoring Active Tab")
-			Qushie.tabs[i].active = true;
+	Qushie.emit('Qushie.load_plugins',{});
+	var tabs = Qushie.applyFilter("Qushie.tabs",Qushie,Qushie.tabs);
+	for ( i in tabs) {
+		var tab = tabs[i];
+		if ( tab.id == Qushie.settings.active_tab ) {
+			// // console.log("Restoring Active Tab")
+			tab.active = true;
 		} else {
-			Qushie.tabs[i].active = false;
+			tab.active = false;
 		}
 	}
-	setTimeout(Qushie.redraw,90);
-	setInterval(function () {
-		Qushie.saveSettings(false);
-	},1500);
-}
-Qushie.registerPlugin = function (pl) {
-	// console.log("registerPlugin")
-	// // console.log("registering plugin",pl);
-	for ( i in Qushie.registered_plugins ) {
-		var epl = Qushie.registered_plugins[i];
-		if ( epl.id == pl.id ) {
-			// // console.log("Already Registered");
-			return;
-		}
-	}
-	Qushie.registered_plugins.push(pl);
+	setTimeout(Qushie.redraw,120);
 }
 Qushie.getAvailableTabs = function () {
-	//// console.log("getAvailableTabs")
-	var tabs = $.extend([],Qushie.tabs);
-	$.each(Qushie.registered_plugins,function (i,pl) {
-		if (Qushie.isPluginActive(pl.id)) {
-			if ( pl.tabs ) {
-				var pl_tabs = pl.tabs();
-				for (_i in pl_tabs ) {
-					tabs.push(pl_tabs[_i]);
-				}
-			}
-		}
-	});	
+	// console.log("getAvailableTabs")
+	var tabs = Qushie.applyFilter("Qushie.tabs",Qushie, Qushie.tabs);
 	return tabs;
 }
 Qushie.redraw = function () {
 	if ( Qushie.ui_needs_update ) {
-		Qushie.emit("before_redraw",{});
+		Qushie.emit("Qushie.redraw.before",{});
+		console.log("Rendering tabs for Qushie");
 		var tabs = Qushie.getAvailableTabs();
-		//// console.log("Tabs are", tabs);
+		console.log("Tabs are", tabs);
 		Qushie.renderTabs("Qushie_Main_Tabs","Main",tabs);
 		Qushie.ui_needs_update = false;
-		Qushie.emit("after_redraw",{});
+		Qushie.emit("Qushie.redraw.after",{});
 	}
 }
 Qushie.renderTabs = function (id,target,tabs,silent) {
-
-	//// console.log("renderTabs", Qushie.tabs)
+	// console.log("renderTabs", Qushie.tabs)
+	
 	if ( ! silent ) {
-		Qushie.emit("before_render_tabs",{});
+		Qushie.emit("Qushie.render_tabs.before",{});
 	}
 	
 	var html = Qushie.tab_controls({id: id, tabs: tabs});
@@ -168,7 +137,7 @@ Qushie.renderTabs = function (id,target,tabs,silent) {
 	$('#' + id).find('dd').each(function (i,entry) {
 		$(entry).on('click',function () {
 			var tab = Qushie.findTabById( $(this).attr('data-qushie-tab-id'),tabs );
-			// // console.log("Tab is", tab);
+			// // // console.log("Tab is", tab);
 			$('#' + id + "_Contents").find('.content').removeClass('active');
 			$(this).parent().find('dd').removeClass('active');
 			$(this).addClass('active');
@@ -183,7 +152,7 @@ Qushie.renderTabs = function (id,target,tabs,silent) {
 		} );
 	});
 	if ( ! silent ) {
-		Qushie.emit("after_render_tabs",{});
+		Qushie.emit("Qushie.render_tabs.after",{});
 	}
 	$('body').scrollTop(0);
 }
@@ -199,7 +168,7 @@ Qushie.findTabById = function (id,tabs) {
 	return null;
 }
 Qushie.findPluginById = function (id) {
-	//// console.log("findPluginById");
+	// console.log("findPluginById");
 	for ( i in Qushie.registered_plugins) {
 		if ( Qushie.registered_plugins[i].id == id ) {
 			return Qushie.registered_plugins[i];
@@ -208,38 +177,27 @@ Qushie.findPluginById = function (id) {
 	return null;
 }
 Qushie.setActiveTab = function (id, key) {
-	// console.log("Setting Active Tab", id);
+	// // console.log("Setting Active Tab", id);
 	if ( ! key ) {
 		key = 'active_tab';
 	}
 	Qushie.settings[key] = id;
-	Qushie.emit('set_active_tab',{id: id});
+	Qushie.emit('Qushie.set_active_tab',{id: id});
 	$('body').scrollTop(0);
-	Qushie.saveSettings();
+	Qushie.saveSettings(false);
 }
 Qushie.isTabActive = function (id, key) {
 	if ( ! key ) {
 		key = 'active_tab';
 	}
-	//// console.log("isTabActive: ", key,id,id == Qushie.settings[key])
+	// console.log("isTabActive: ", key,id,id == Qushie.settings[key])
 	return id == Qushie.settings[key];
 }
 Qushie.loadSettings = function () {
 	var sfile = Qushie.createFileObject();
-	sfile.SignalFileDoesNotExist.connect(function () {
-		// // console.log("No settings to load");
-	});
-	sfile.SignalOpened.connect(function () {
-		sfile.read();
-	});
-	sfile.SignalBytesRead.connect(function (str) {
-		eval("Qushie.settings = " + str + ";");
-		
-	});
-	sfile.SignalEndOfFile.connect(function () {
-		sfile.close();
-	});
-	sfile.open("settings.json","r");
+
+	var content = sfile.getContents("settings.json");
+	eval("Qushie.settings = " + content + ";");
 }
 Qushie.saveSettings = function (update_ui) {
 	if ( ! update_ui === false ) {
@@ -265,21 +223,26 @@ Qushie.isPluginActive = function (id) {
 	return Qushie.settings.plugins[pl.id].active;
 }
 
-Qushie.wordWrap = function (str, width, brk, cut) {
- 
-    brk = brk || '\n';
-    width = width || 80;
-    cut = cut || false;
- 
-    if (!str) { return str; }
- 
-    var regex = '.{1,' +width+ '}(\\s|$)' + (cut ? '|.{' +width+ '}|.+$' : '|\\S+?(\\s|$)');
- 
-    return str.match( RegExp(regex, 'g') ).join( brk );
+Qushie.wordWrap = function (txt, len) {
+	txt = txt.replace("\n", " ");
+	txt = txt.replace("\r","");
+	var words = txt.split(" ");
+	var new_line = "";
+	var added_len = 0;
+	for ( var i in words) {
+		var word = words[i];
+		if ( added_len >= len ) {
+			new_line += "\n";
+			added_len = 0;
+		}
+		new_line += " " + word;
+		added_len += word.length;
+	}
+	return new_line;
 }
 Qushie.toggle = function (id,obj,key,options,callback) {
 	if ( obj[key] === true ) {
-		// console.log(id + " " + key + " is true so setting checked");
+		// // console.log(id + " " + key + " is true so setting checked");
 		$('#' + id).attr('checked',true);
 	} else {
 		$('#' + id).removeAttr('checked');
@@ -315,10 +278,10 @@ Qushie.stripHTML = function (html) {
 }
 // Proxy functions
 Qushie.miniWindow = function (id,title,content) {
-	// console.log("MINIWINDOW:","Adding a mini window");
+	// // console.log("MINIWINDOW:","Adding a mini window");
 	var div = $('#'+ id + '_MiniWindow');
 	if (div.length == 0 ) {
-		// console.log("MINIWINDOW:","Mini window doesn't exist");
+		// // console.log("MINIWINDOW:","Mini window doesn't exist");
 		div = '<div id="' + id + '_MiniWindow" class="miniwindow">' +
 			'<div id="'+ id +'_Header" class="miniwindow-header">' + title + '</div>' +
 			'<div id="' + id + '_Content" class="miniwindow-content">' +
@@ -328,7 +291,7 @@ Qushie.miniWindow = function (id,title,content) {
 		$('body').append(div);
 		div = $('#'+ id + '_MiniWindow');
 	} else {
-		// console.log("MINIWINDOW:","Window exists");
+		// // console.log("MINIWINDOW:","Window exists");
 		div.find('#' + id + '_Content').html( content.call(Qushie) );
 	}
 	Qushie.positionRememberable(div,".miniwindow-header");
@@ -365,5 +328,53 @@ Qushie.get = function (key,default_value) {
 	var value = Qushie.settings.variables[key];
 	if ( !value ) {
 		return default_value;
+	}
+}
+Qushie.deAnsi = function (txt) {
+	var in_ansi = 0;
+	var new_txt = "";
+	for ( var i = 0; i < txt.length; i++) {
+		if ( txt.charCodeAt(i) == 27 ) {
+			in_ansi = 1;
+			continue;
+		} else if ( txt[i] == "m" && in_ansi === 1 ) {
+			in_ansi = 0;
+			continue;
+		} else if ( in_ansi == 0) {
+			new_txt += txt[i];
+		}
+	}
+	return new_txt;
+}
+Qushie.setSelectionRange = function (input, selectionStart, selectionEnd) {
+	if (input.setSelectionRange) {
+		input.focus();
+		input.setSelectionRange(selectionStart, selectionEnd);
+	}
+	else if (input.createTextRange) {
+		var range = input.createTextRange();
+		range.collapse(true);
+		range.moveEnd('character', selectionEnd);
+		range.moveStart('character', selectionStart);
+		range.select();
+	}
+}
+
+Qushie.setCaretToPos = function (input, pos) {
+	input = document.getElementById(input);
+ 	Qushie.setSelectionRange(input, pos, pos);
+}
+
+Qushie.time = function () {
+	var now = new Date();
+	return {
+		year: now.getUTCFullYear(),
+		month: now.getUTCMonth(),
+		day: now.getUTCDate(),
+		hour: now.getUTCHours(),
+		minutes: now.getUTCMinutes(),
+		seconds: now.getUTCSeconds(),
+		ymd: now.getUTCFullYear() + '' + now.getUTCMonth() + '' + now.getUTCDate(),
+		ymdhis: now.getUTCFullYear() + '-' + now.getUTCMonth() + '-' + now.getUTCDate() + ' ' + now.getUTCHours() + ':' + now.getUTCMinutes() + ':' + now.getUTCSeconds(),
 	}
 }

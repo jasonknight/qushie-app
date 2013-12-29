@@ -1080,6 +1080,7 @@ var Autocomplete = function() {
     };
 
     this.gatherCompletions = function(editor, callback) {
+        console.log("Gathering Completions");
         var session = editor.getSession();
         var pos = editor.getCursorPosition();
         

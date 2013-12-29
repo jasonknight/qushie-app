@@ -4,6 +4,12 @@ body {
 	margin: 0;
 	padding: 0;
 	background: #333;
+	color: white;
+}
+label {
+	color: white;
+}
+#Main {
 }
 .plugin-entry {
 	font-size: 0.8em;
@@ -145,4 +151,25 @@ input[type="text"][disabled], input[type="password"][disabled], input[type="date
 }
 .switch-button-label.on {
 	color: #8dcb2b;
+}
+div.vertical-spacer {
+	height: 20px;
+}
+button.tiny, .button.tiny {
+	padding-top: 0.3rem;
+	padding-right: 0.7rem;
+	padding-bottom: 0.3rem;
+	padding-left: 0.7rem;
+	font-size: 0.9rem;
+}
+button.teeny, .button.teny {
+	padding-top: 4px;
+	padding-right: 6px;
+	padding-bottom: 4px;
+	padding-left: 6px;
+	font-size: 12px;
+	margin-bottom: 5px;
+}
+.panel h1, .panel h2, .panel h3, .panel h4, .panel h5, .panel h6, .panel p {
+	color: white;
 }

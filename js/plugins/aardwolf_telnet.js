@@ -79,23 +79,34 @@ AardwolfTelnet.wonts = [];
 AardwolfTelnet.parseServerOutput = function (txt) {
 	// Here we need to parse what the server sends us
 	
-	var log = Qushie.createFileObject();
-	txt = Qushie.applyFilter('aardwolf_text_received_raw',AardwolfTelnet,txt);
+	//var log = Qushie.createFileObject();
+
+	txt = Qushie.applyFilter('AardwolfTelnet.text_received.raw',AardwolfTelnet,txt);
+	var now = Qushie.time();
+	var stamp = now.ymdhis;
 	txt = txt.replace(/\x0D/g,"");
-	log.append(".log",txt);
+	//log.append(".log-" + now.ymd,"[" +stamp+ "]" + txt);
 	
-	txt = Qushie.applyFilter("aardwolf_text_received",AardwolfTelnet,txt);
-	console.log("AARD:", txt);
+
+	txt = Qushie.applyFilter("AardwolfTelnet.text_received",AardwolfTelnet,txt);
+	if ( txt.length > 120 && txt.indexOf("\n") == -1 ) {
+		txt = Qushie.wordWrap(txt,120);
+	}
 	//txt = Qushie.applyFilter("aardwolf_text_wordwrapped",AardwolfTelnet,txt);
-	var html = ansi_up.ansi_to_html(txt.replace("<","&lt;").replace(">","&gt;"));
-	log.append(".buffer",html);
-	html = Qushie.applyFilter("aardwolf_html_produced",AardwolfTelnet,html);
-	$("#Aardwolf_Mud_Ouput").append( html.replace("[m","").replace(/\n+/g,"\n") + "\n" );
+	try {
+		txt = txt.replace("<","&lt;");
+		txt = txt.replace(">","&gt;");
+	} catch (err) {
+		console.log("Failed to replace in text");
+	}
+	
+	var html = ansi_up.ansi_to_html(txt);
+	html = Qushie.applyFilter("AardwolfTelnet.html_produced",AardwolfTelnet,html);
+	$("#Aardwolf_Mud_Output").append( html.replace("[m","").replace(/\n+/g,"\n") + "\n" );
 	var nh = $('#AardwolfTelnet_Window > pre').height();
 	$('#AardwolfTelnet_Window').scrollTop( nh );
 }
 AardwolfTelnet.onLoad = function () {
-	console.log("Loading AardwolfTelnet this is", this);
 	if ( !Qushie.aardwolf_socket ) {
 		Qushie.aardwolf_socket = -1;
 	}
@@ -109,23 +120,23 @@ AardwolfTelnet.onLoad = function () {
 	});
 
 	AardwolfTelnet.connection.SignalConnected.connect(function (server,port) {
-		console.log("Connected to: ", server,port);
+		//console.log("Connected to: ", server,port);
 		Qushie.settings.aardwolf_socket = AardwolfTelnet.connection.id;
 		AardwolfTelnet.setConnectButtonClass('success');
 	});
 
 	AardwolfTelnet.connection.SignalSocketConnectionClosed.connect(function () {
-		console.log("Connection has been closed");
+		//console.log("Connection has been closed");
 		AardwolfTelnet.setConnectButtonClass('alert');
 	});
 
 	AardwolfTelnet.connection.SignalSocketError.connect(function (err) {
-		console.log("Error: ", err);
+		//console.log("Error: ", err);
 		AardwolfTelnet.setConnectButtonClass('alert');
 	});
 
 	AardwolfTelnet.connection.SignalSocketException.connect(function (code) {
-		console.log("Exception: ", code);
+		//console.log("Exception: ", code);
 		AardwolfTelnet.setConnectButtonClass('alert');
 	});
 	
@@ -147,50 +158,73 @@ AardwolfTelnet.tabContent = function () {
 	var file = Qushie.createFileObject();
 	var contents = '';//file.getContents(".buffer");
 	var content = '<div id="AardwolfTelnet_Tab_Content">' +
+					Qushie.row({
+						content: Qushie.column({
+							large_columns: 15, small_columns: 15,
+							classes: 'collapse',
+							content: '<div id="AardwolfTelnet_Connect_Button" class="button radius tiny alert" onClick="AardwolfTelnet.connect();">Connect</div>' 
+						})
+					}) +
 				  Qushie.row( { content: 
-				  	Qushie.column({content: '<div id="AardwolfTelnet_Window"><pre id="Aardwolf_Mud_Ouput" class="mud-output">' + contents + '</pre></div>', large_columns: 15, small_columns: 15 }) +
+				  	Qushie.column({
+				  		content: '<div id="AardwolfTelnet_Window"><pre id="Aardwolf_Mud_Output" class="mud-output">' + contents + '</pre></div> ' +
+				  		'<textarea id="AardwolfTelnet_Input"></textarea>', 
+				  		large_columns: 15, small_columns: 15 
+				  	}) +
 				  	Qushie.column({ 
 				  		content: Qushie.panel({ content: '<div id="AardwolfTelnet_RightWidgets"></div>'}), 
 				  		large_columns: 9, 
 				  		small_columns:9
 				  	})
 				  }) +
-				  ' <textarea id="AardwolfTelnet_Input"></textarea>' +
+				  ' ' +
 				  '</div>' +
 				  '<style type="text/css">' + 
 				  	'#AardwolfTelnet_Window { background-color: #262626;padding: 10px; font-size: 1.3em;color: white;margin-bottom: 10px; width: 100%; height: ' +height+ 'px; overflow-y: scroll; overflow-x: hidden;}' +
 				  	'#AardwolfTelnet_Input { font-size: 1.2em;}' +
 				  	'.sent-command { color: red;}' +
+				  	'.note { color: white; background-color: #203356; padding: 10px;}' +
+				  	'.success-note { color: white; background-color: #567d31; padding: 10px;}' +
+				  	'.error-note { color: white; background-color: #7e0101; padding: 10px;}' +
 				  	'#AardwolfTelnet_RightWidgets .tabs dd a { font-weight: normal;padding-left: 10px; padding-right: 10px;padding-top: 2px; padding-bottom: 5px;}' +
 				  '</style>';
 	return content;
+}
+AardwolfTelnet.appendToOutput = function (thing) {
+	$("#Aardwolf_Mud_Output").append( thing + "\n" );
 }
 AardwolfTelnet.execute = function (cmd) {
 	if ( cmd.indexOf(';') ) {
 		var cmds = cmd.split(';');
 		for ( i in cmds ) {
 			var the_cmd = cmds[i];
-			the_cmd = Qushie.applyFilter('aardwolf_cmd_entered',AardwolfTelnet,the_cmd);
+			the_cmd = Qushie.applyFilter('AardwolfTelnet.cmd_entered',AardwolfTelnet,the_cmd);
 			try {
 				AardwolfTelnet.send(the_cmd);
+				AardwolfTelnet.appendToOutput('<span class="sent-command">' + the_cmd + "</span>");
 			} catch (err) {
-				console.log(err);
+				errorNote(err);
 			}
 			
 		} 
 	} else {
-		the_cmd = Qushie.applyFilter('aardwolf_cmd_entered',AardwolfTelnet,cmd);
+		the_cmd = Qushie.applyFilter('AardwolfTelnet.cmd_entered',AardwolfTelnet,cmd);
 		try {
 			AardwolfTelnet.send(the_cmd);
+			AardwolfTelnet.appendToOutput('<span class="sent-command">' + cmd + "</span>");
 		} catch (err) {
-			console.log(err);
+			errorNote(err);
 		}
 		
 	}
+	var nh = $('#AardwolfTelnet_Window > pre').height();
+	$('#AardwolfTelnet_Window').scrollTop( nh );
 }
 AardwolfTelnet.send = function (cmd) {
 	AardwolfTelnet.connection.write(cmd + "\n\r");
-	$("#Aardwolf_Mud_Ouput").append("\n" + '<span class="sent-command">' + cmd + "</span>\n" );	
+	
+	var nh = $('#AardwolfTelnet_Window > pre').height();
+	$('#AardwolfTelnet_Window').scrollTop( nh );	
 }
 AardwolfTelnet.sendRaw = function (cmd) {
 	AardwolfTelnet.connection.write(cmd);
@@ -202,9 +236,11 @@ AardwolfTelnet.installListeners = function () {
 			var cmd = $('#AardwolfTelnet_Input').val();
 			$('#AardwolfTelnet_Input').val('');
 			cmd = cmd.trim();
-			
-			AardwolfTelnet.execute(cmd);
-			
+			if ( cmd && typeof cmd == 'string' && cmd != '[object Object]' ) {
+				AardwolfTelnet.execute(cmd);
+			} else {
+				AardwolfTelnet.send(" ");
+			}
 		} 
 		$('#AardwolfTelnet_Input').focus();
 		event.preventDefault();
@@ -219,42 +255,38 @@ AardwolfTelnet.fakeConnection = function () {
 	console.log("File contents are: ", txt);
 }
 AardwolfTelnet.drawWidgets = function () {
-	console.log("Rendering aard tabs");
 	var tabs = AardwolfTelnet.tabs;
-	tabs = Qushie.applyFilter('aardwolf_telnet_tabs',AardwolfTelnet,tabs);
+	tabs = Qushie.applyFilter('AardwolfTelnet.tabs',AardwolfTelnet,tabs);
 	Qushie.renderTabs(
 		"AardwolfTelnet_RightWidgets_Tabs",
 		"AardwolfTelnet_RightWidgets",
 		AardwolfTelnet.tabs,
 		true // i.e. silent
 	);
+	setTimeout(function () {
+		var nh = $('#AardwolfTelnet_Window > pre').height();
+		$('#AardwolfTelnet_Window').scrollTop( nh );
+	},120);
 }
-Qushie.connect('load_plugins',AardwolfTelnet.id, 0, AardwolfTelnet.onLoad);
-Qushie.connect('after_render_tabs',AardwolfTelnet.id,0,AardwolfTelnet.installListeners);
-Qushie.registerPlugin({
-	name: "Aardwolf Telnet Client",
-	id: "Aarwolf_Telnet_Client",
-	description: "Allows you to connect to Aardwolf Mud",
-	path: "",
-	url: "",
-	version: 1.0,
-	settingsContent: function () {
-		return '<div id="AardwolfTelnet_Connect_Button" href="#" class="button tiny alert" onclick="AardwolfTelnet.connect()">Connect</div>';
-	},
-	tabs: function () {
-		return [
-			{
-				name: "Aardwolf",
-				id: "Aardwolf_Telnet_Tab",
-				active: false,
-				content: function () {
-					return AardwolfTelnet.tabContent();
-				},
-				drawWidgets: AardwolfTelnet.drawWidgets,
-			},
-		];
+Qushie.connect('Qushie.load_plugins',AardwolfTelnet.id, 0, AardwolfTelnet.onLoad);
+Qushie.connect('Qushie.render_tabs.after',AardwolfTelnet.id,0,AardwolfTelnet.installListeners);
+Qushie.addFilter("Qushie.tabs","AardwolfTelnet_Tabs",0,function (tabs) {
+	for ( var i in tabs ) {
+		var tab = tabs[i];
+		if ( tab.id == "Aardwolf_Telnet_Tab") {
+			return tabs;
+		}
 	}
-
+	tabs.push({
+		name: "Aardwolf",
+		id: "Aardwolf_Telnet_Tab",
+		active: false,
+		content: function () {
+			return AardwolfTelnet.tabContent();
+		},
+		drawWidgets: AardwolfTelnet.drawWidgets,
+	});
+	return tabs;
 });
 
 function send(txt) {
@@ -264,5 +296,14 @@ function execute(cmd) {
 	AardwolfTelnet.execute(cmd);
 }
 function note(txt) {
-	$("#Aardwolf_Mud_Ouput").append("\n" + '<span class="note">' + txt + "</span>\n" );	
+	AardwolfTelnet.appendToOutput('<div class="note"><h4>Notice</h4><p>' + txt + "</p></div>" );	
+}
+function successNote(txt) {
+	AardwolfTelnet.appendToOutput('<div class="success-note"><h4>Success</h4><p>' + txt + "</p></div>" );	
+}
+function errorNote(txt) {
+	AardwolfTelnet.appendToOutput('<div class="error-note"><h4>Error</h4><p>' + txt + "</p></div>" );
+}
+function appendToOutput(thing) {
+	AardwolfTelnet.appendToOutput(thing);
 }
