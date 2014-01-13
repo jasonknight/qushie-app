@@ -66,6 +66,57 @@ var TOPT_COMPRESS2 		 	= 86;
 var TOPT_EXOPL 			 	= 255;
 var TOPT_MCCP2 			 	= 86;
 var TOPT_GMCP				= 201;
+var TOPT_AARD				= 102;
+
+
+var TELNET_OPTIONS_LIST = [
+	0,
+	1,
+	2,
+	3,
+	4,
+	5,
+	6,
+	7,
+	8,
+	9,
+	10,
+	11,
+	12,
+	13,
+	14,
+	15,
+	16,
+	17,
+	18,
+	19,
+	20,
+	21,
+	22,
+	23,
+	24,
+	25,
+	26,
+	27,
+	28,
+	29,
+	30,
+	31,
+	32,
+	33,
+	34,
+	35,
+	36,
+	37,
+	38,
+	39,
+	70,
+	86,
+	255,
+	86,
+	201,
+	102 
+];
 
 var AardwolfTelnet = {
 	id: "Aardwolf_Telnet",
@@ -186,6 +237,7 @@ AardwolfTelnet.tabContent = function () {
 				  	'.note { color: white; background-color: #203356; padding: 10px;}' +
 				  	'.success-note { color: white; background-color: #567d31; padding: 10px;}' +
 				  	'.error-note { color: white; background-color: #7e0101; padding: 10px;}' +
+				  	'.debug { color: white; background-color: #3a4125; padding: 10px;}' +
 				  	'#AardwolfTelnet_RightWidgets .tabs dd a { font-weight: normal;padding-left: 10px; padding-right: 10px;padding-top: 2px; padding-bottom: 5px;}' +
 				  '</style>';
 	return content;
@@ -298,6 +350,9 @@ function execute(cmd) {
 function note(txt) {
 	AardwolfTelnet.appendToOutput('<div class="note"><h4>Notice</h4><p>' + txt + "</p></div>" );	
 }
+function debug(txt) {
+	AardwolfTelnet.appendToOutput('<div class="debug"><h4>Debug</h4><pre>' + txt + "</pre></div>" );	
+}
 function successNote(txt) {
 	AardwolfTelnet.appendToOutput('<div class="success-note"><h4>Success</h4><p>' + txt + "</p></div>" );	
 }
@@ -306,4 +361,58 @@ function errorNote(txt) {
 }
 function appendToOutput(thing) {
 	AardwolfTelnet.appendToOutput(thing);
+}
+function stripTelnetChars(txt) {
+	var result = '';
+	var state = { iac: false, sb: false, se: false, opt: false, will: false, wont: false, do: false, dont: false };
+	for ( var i = 0; i < txt.length; i++ ) {
+		var c = txt.charCodeAt(i);
+		switch( c ) {
+			case IAC:
+				state.iac = true;
+				break;
+			case SB:
+				state.sb = true;
+				break;
+			case SE:
+				state.se = true;
+				break;
+			case WILL:
+				state.will = true;
+				break;
+			case DO:
+				state.do = true;
+				break;
+			case DONT:
+				state.dont = true;
+				break;
+			case WONT:
+				state.wont = true;
+				break;
+			default:
+				try {
+					if ( state.iac && (state.do || state.will || state.wont || state.dont ) && TELNET_OPTIONS_LIST.indexOf(c) != -1 ) {
+						Qushie.log("Found an option: ",c,state);
+						Qushie.emit("telnet_option",{ state: state, option: c, index: i, full_text: txt} );
+						state = { iac: false, sb: false, se: false, opt: false, will: false, wont: false, do: false, dont: false };
+						continue;
+					}
+					if ( state.sb && state.se ) {
+						state = { iac: false, sb: false, se: false, opt: false, will: false, wont: false, do: false, dont: false };
+					}
+					if ( txt.charCodeAt(i) >= EOF ) {
+						// we don't want any of these.
+						continue;
+					}
+					if ( c <= 126 && c >= 31 ) {
+						result += txt[i];
+					}
+				} catch (err) {
+					errorNote(err);
+				}
+				break;
+				
+		}
+	}
+	return result;
 }

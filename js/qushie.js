@@ -4,7 +4,7 @@ Qushie.settings = {
 	tabs_rendered: false,
 	throw_error: false,
 };
-Qushie.debug = 'no';
+Qushie.debug = 'yes';
 Qushie.events = {};
 Qushie.filters = {};
 Qushie.row = _.template( $('#template_row').html() );
@@ -12,9 +12,22 @@ Qushie.column = _.template( $('#template_column').html() );
 Qushie.panel = _.template( $('#template_panel').html() );
 Qushie.tab_controls = _.template( $('#template_tab_controls').html() );
 Qushie.tab_contents = _.template( $('#template_tab_contents').html() );
-
+Qushie.log = function (obj,force) {
+	if ( Qushie.debug != 'yes' && ! force) {
+		return;
+	}
+	var str = JSON.stringify(obj,undefined,4);
+	for ( var i = 1; i < arguments.length; i++ ) {
+		str += "\n" + JSON.stringify( arguments[i], undefined, 4);
+	}
+	if ( typeof debug == 'function' ) {
+		debug(str);
+	} else {
+		console.log("DEBUG", str);
+	}
+}
 Qushie.connect = function (name, id, priority, cb) {
-	if ( Qushie.debug == 'yes' ) { console.log("Connecting",name,id,priority,cb) }
+	if ( Qushie.debug == 'yes' ) { Qushie.log("Connecting",name,id,priority,cb) }
 	if ( ! Qushie.events[name] ) {
 		Qushie.events[name] = [];
 	}
@@ -33,7 +46,7 @@ Qushie.disconnect = function (name,id) {
 		Qushie.events[name] = [];
 	}
 	if ( Qushie.debug == 'yes' ) {
-		console.log("Disconnecting", name,id);
+		Qushie.log("Disconnecting", name,id);
 	}
 	var new_events = [];
 	for ( i in Qushie.events[name] ) {
@@ -46,30 +59,48 @@ Qushie.disconnect = function (name,id) {
 	Qushie.events = new_events;
 }
 Qushie.emit = function (name, data) {
-	if ( Qushie.debug == 'yes' ) { console.log("Qushie Emit: ", name, data, " to ", Qushie.events[name]); }
-	for ( i in Qushie.events[name] ) {
-		var desc = Qushie.events[name][i];
-		if ( desc ) {
-			desc.callback.call(data);
+	if ( Qushie.debug == 'yes' ) { Qushie.log("Qushie Emit: ", name, data, " to ", Qushie.events[name]); }
+	if ( ! Qushie.events[name] ) {
+		return;
+	}
+	for ( var key in Qushie.events ) {
+		try {
+			var re = new RegExp(key);
+			var m = re.exec(name);
+			// console.log("m is: ", m, " matching against ", alias.match,str);
+			if ( m ) {
+
+				var e = Qushie.events[key];
+				Qushie.log("Emit Matched",key,name,e);
+				for ( i in Qushie.events[name] ) {
+					var desc = e[i];
+					if ( desc ) {
+						desc.callback.call(data);
+					}
+				}
+			}
+		} catch (err) {
+			// console.log("Error: ", err);
+			Qushie.log("Emit Error:",err);
 		}
 	}
 }
 Qushie.addFilter = function (name,id,priority,cb) {
-	if ( Qushie.debug == 'yes' ) { console.log("Adding Filter:",name,id,priority,cb); }
+	if ( Qushie.debug == 'yes' ) { Qushie.log("Adding Filter:",name,id,priority,cb); }
 	if ( ! Qushie.filters[name] ) {
 		Qushie.filters[name] = [];
 	}
 	for ( i in Qushie.filters[name] ) {
 		var desc = Qushie.filters[name][i];
 		if ( desc && desc.id == id ) {
-			 // console.log(name,id,"Already registered")
+			 // Qushie.log(name,id,"Already registered")
 			return;
 		}
 	}
 	Qushie.filters[name].push({id: id, callback: cb, priority: priority});
 }
 Qushie.applyFilter = function (name,th,data) {
-	if ( Qushie.debug == 'yes' ) { console.log("applying filter ",name, " TO ", Qushie.filters); }
+	if ( Qushie.debug == 'yes' ) { Qushie.log("applying filter ",name, " TO ", Qushie.filters); }
 	if ( ! data ) {
 		data = th;
 		th = Qushie;
@@ -87,14 +118,14 @@ Qushie.tabs = [
 ];
 
 Qushie.onLoad = function () {
-	if ( Qushie.debug == 'yes' ) { console.log("onLoad"); }
+	if ( Qushie.debug == 'yes' ) { Qushie.log("onLoad"); }
 	Qushie.loadSettings();
 	Qushie.emit('Qushie.load_plugins',{});
 	var tabs = Qushie.applyFilter("Qushie.tabs",Qushie,Qushie.tabs);
 	for ( i in tabs) {
 		var tab = tabs[i];
 		if ( tab.id == Qushie.settings.active_tab ) {
-			// // console.log("Restoring Active Tab")
+			// // Qushie.log("Restoring Active Tab")
 			tab.active = true;
 		} else {
 			tab.active = false;
@@ -103,23 +134,23 @@ Qushie.onLoad = function () {
 	setTimeout(Qushie.redraw,120);
 }
 Qushie.getAvailableTabs = function () {
-	// console.log("getAvailableTabs")
+	// Qushie.log("getAvailableTabs")
 	var tabs = Qushie.applyFilter("Qushie.tabs",Qushie, Qushie.tabs);
 	return tabs;
 }
 Qushie.redraw = function () {
 	if ( Qushie.ui_needs_update ) {
 		Qushie.emit("Qushie.redraw.before",{});
-		console.log("Rendering tabs for Qushie");
+		Qushie.log("Rendering tabs for Qushie");
 		var tabs = Qushie.getAvailableTabs();
-		console.log("Tabs are", tabs);
+		Qushie.log("Tabs are", tabs);
 		Qushie.renderTabs("Qushie_Main_Tabs","Main",tabs);
 		Qushie.ui_needs_update = false;
 		Qushie.emit("Qushie.redraw.after",{});
 	}
 }
 Qushie.renderTabs = function (id,target,tabs,silent) {
-	// console.log("renderTabs", Qushie.tabs)
+	// Qushie.log("renderTabs", Qushie.tabs)
 	
 	if ( ! silent ) {
 		Qushie.emit("Qushie.render_tabs.before",{});
@@ -137,7 +168,7 @@ Qushie.renderTabs = function (id,target,tabs,silent) {
 	$('#' + id).find('dd').each(function (i,entry) {
 		$(entry).on('click',function () {
 			var tab = Qushie.findTabById( $(this).attr('data-qushie-tab-id'),tabs );
-			// // // console.log("Tab is", tab);
+			// // // Qushie.log("Tab is", tab);
 			$('#' + id + "_Contents").find('.content').removeClass('active');
 			$(this).parent().find('dd').removeClass('active');
 			$(this).addClass('active');
@@ -168,7 +199,7 @@ Qushie.findTabById = function (id,tabs) {
 	return null;
 }
 Qushie.findPluginById = function (id) {
-	// console.log("findPluginById");
+	// Qushie.log("findPluginById");
 	for ( i in Qushie.registered_plugins) {
 		if ( Qushie.registered_plugins[i].id == id ) {
 			return Qushie.registered_plugins[i];
@@ -177,7 +208,7 @@ Qushie.findPluginById = function (id) {
 	return null;
 }
 Qushie.setActiveTab = function (id, key) {
-	// // console.log("Setting Active Tab", id);
+	// // Qushie.log("Setting Active Tab", id);
 	if ( ! key ) {
 		key = 'active_tab';
 	}
@@ -190,7 +221,7 @@ Qushie.isTabActive = function (id, key) {
 	if ( ! key ) {
 		key = 'active_tab';
 	}
-	// console.log("isTabActive: ", key,id,id == Qushie.settings[key])
+	// Qushie.log("isTabActive: ", key,id,id == Qushie.settings[key])
 	return id == Qushie.settings[key];
 }
 Qushie.loadSettings = function () {
@@ -242,7 +273,7 @@ Qushie.wordWrap = function (txt, len) {
 }
 Qushie.toggle = function (id,obj,key,options,callback) {
 	if ( obj[key] === true ) {
-		// // console.log(id + " " + key + " is true so setting checked");
+		// // Qushie.log(id + " " + key + " is true so setting checked");
 		$('#' + id).attr('checked',true);
 	} else {
 		$('#' + id).removeAttr('checked');
@@ -278,10 +309,10 @@ Qushie.stripHTML = function (html) {
 }
 // Proxy functions
 Qushie.miniWindow = function (id,title,content) {
-	// // console.log("MINIWINDOW:","Adding a mini window");
+	// // Qushie.log("MINIWINDOW:","Adding a mini window");
 	var div = $('#'+ id + '_MiniWindow');
 	if (div.length == 0 ) {
-		// // console.log("MINIWINDOW:","Mini window doesn't exist");
+		// // Qushie.log("MINIWINDOW:","Mini window doesn't exist");
 		div = '<div id="' + id + '_MiniWindow" class="miniwindow">' +
 			'<div id="'+ id +'_Header" class="miniwindow-header">' + title + '</div>' +
 			'<div id="' + id + '_Content" class="miniwindow-content">' +
@@ -291,7 +322,7 @@ Qushie.miniWindow = function (id,title,content) {
 		$('body').append(div);
 		div = $('#'+ id + '_MiniWindow');
 	} else {
-		// // console.log("MINIWINDOW:","Window exists");
+		// // Qushie.log("MINIWINDOW:","Window exists");
 		div.find('#' + id + '_Content').html( content.call(Qushie) );
 	}
 	Qushie.positionRememberable(div,".miniwindow-header");
